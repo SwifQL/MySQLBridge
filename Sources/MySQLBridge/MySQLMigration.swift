@@ -6,7 +6,7 @@
 //
 
 import Bridges
-import PostgresNIO
+import MySQLNIO
 
 public protocol MySQLMigration: Migration {
     associatedtype Connection = MySQLConnection
