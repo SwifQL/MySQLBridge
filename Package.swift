@@ -51,6 +51,6 @@ let package = Package(
     dependencies: deps.map { $0.package },
     targets: [
         .target(name: "MySQLBridge", dependencies: deps.flatMap { $0.targets }),
-//        .testTarget(name: "MySQLBridgeTests", dependencies: ["MySQLBridge"]),
+        .testTarget(name: "MySQLBridgeTests", dependencies: ["MySQLBridge"]),
     ]
 )
