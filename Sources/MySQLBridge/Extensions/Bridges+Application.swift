@@ -13,6 +13,12 @@ extension BridgesApplication {
     }
 }
 
+extension BridgesRequest {
+    public var mysql: MySQLBridge {
+        bridgesApplication.mysql
+    }
+}
+
 import NIO
 import Logging
 
