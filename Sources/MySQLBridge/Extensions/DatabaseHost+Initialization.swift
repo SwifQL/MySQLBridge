@@ -14,7 +14,7 @@ extension DatabaseHost {
         let host = ProcessInfo.processInfo.environment["MYSQL_HOST"] ?? "127.0.0.1"
         let port = Int(ProcessInfo.processInfo.environment["MYSQL_PORT"] ?? "5432")
         let user = ProcessInfo.processInfo.environment["MYSQL_USER"] ?? "postgres"
-        let pwd = ProcessInfo.processInfo.environment["MYSQL_PWD"] ?? ""
+        let pwd = ProcessInfo.processInfo.environment["MYSQL_PWD"]
         return .init(hostname: host, username: user, password: pwd, port: port ?? 5432, tlsConfiguration: nil)
     }
     
