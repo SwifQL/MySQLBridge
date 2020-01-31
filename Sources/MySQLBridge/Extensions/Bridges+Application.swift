@@ -9,21 +9,21 @@ import Bridges
 
 extension BridgesApplication {
     public var mysql: MySQLBridge {
-        bridges.bridge(to: MySQLBridge.self)
+        .init(bridges.bridge(to: _MySQLBridge.self, on: eventLoopGroup.next()))
     }
 }
 
 extension BridgesRequest {
     public var mysql: MySQLBridge {
-        bridgesApplication.mysql
+        .init(bridgesApplication.bridges.bridge(to: _MySQLBridge.self, on: eventLoop))
     }
 }
 
 import NIO
 import Logging
 
-extension MySQLBridge {
+extension _MySQLBridge {
     public static func create(eventLoopGroup: EventLoopGroup, logger: Logger) -> AnyBridge {
-        MySQLBridge(eventLoopGroup: eventLoopGroup, logger: logger)
+        _MySQLBridge(eventLoopGroup: eventLoopGroup, logger: logger)
     }
 }

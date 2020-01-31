@@ -4,27 +4,54 @@ import AsyncKit
 import Bridges
 import Logging
 
-public final class MySQLBridge: Bridgeable {
-    public typealias Source = MySQLConnectionSource
-    public typealias Database = MySQLDatabase
-    public typealias Connection = MySQLConnection
+public struct MySQLBridge {
+    let context: BridgeWithContext<_MySQLBridge>
+        
+    init (_ context: BridgeWithContext<_MySQLBridge>) {
+        self.context = context
+    }
     
-    public static var dialect: SQLDialect { .mysql }
+    public func connection<T>(to db: DatabaseIdentifier,
+                                            _ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+        context.bridge.connection(to: db, on: context.eventLoop, closure)
+    }
     
-    public var pools: [String: GroupPool] = [:]
+    public func transaction<T>(to db: DatabaseIdentifier,
+                                            _ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+        context.bridge.transaction(to: db, on: context.eventLoop, closure)
+    }
     
-    public let logger: Logger
-    public let eventLoopGroup: EventLoopGroup
+    public func register(_ db: DatabaseIdentifier) {
+        context.bridge.register(db)
+    }
     
-    required public init (eventLoopGroup: EventLoopGroup, logger: Logger) {
+    public func migrator(for db: DatabaseIdentifier) -> Migrator {
+        BridgeDatabaseMigrations<_MySQLBridge>(context.bridge, db: db)
+    }
+}
+
+final class _MySQLBridge: Bridgeable {
+    typealias Source = MySQLConnectionSource
+    typealias Database = MySQLDatabase
+    typealias Connection = MySQLConnection
+    
+    static var dialect: SQLDialect { .mysql }
+    
+    var pools: [String: GroupPool] = [:]
+    
+    let logger: Logger
+    let eventLoopGroup: EventLoopGroup
+    
+    required init (eventLoopGroup: EventLoopGroup, logger: Logger) {
         self.eventLoopGroup = eventLoopGroup
         self.logger = logger
     }
     
     /// Gives a connection to the database and closes it automatically in both success and error cases
-    public func connection<T>(to db: DatabaseIdentifier,
-                                           _ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
-        self.db(db).withConnection { conn in
+    func connection<T>(to db: DatabaseIdentifier,
+                                  on eventLoop: EventLoop,
+                                  _ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
+        self.db(db, on: eventLoop).withConnection { conn in
             closure(conn).flatMap { result in
                 if conn.isClosed {
                     return conn.eventLoop.future(result)
@@ -43,8 +70,8 @@ public final class MySQLBridge: Bridgeable {
         }
     }
     
-    public func db(_ db: DatabaseIdentifier) -> MySQLDatabase {
-        _ConnectionPoolMySQLDatabase(pool: pool(db), logger: logger)
+    func db(_ db: DatabaseIdentifier, on eventLoop: EventLoop) -> MySQLDatabase {
+        _ConnectionPoolMySQLDatabase(pool: pool(db, for: eventLoop), logger: logger, eventLoop: eventLoop)
     }
     
     deinit {
@@ -55,21 +82,18 @@ public final class MySQLBridge: Bridgeable {
 // MARK: Database on pool
 
 extension EventLoopConnectionPool where Source == MySQLConnectionSource {
-    public func database(logger: Logger) -> MySQLDatabase {
-        _ConnectionPoolMySQLDatabase(pool: self, logger: logger)
+    public func database(logger: Logger, on eventLoop: EventLoop) -> MySQLDatabase {
+        _ConnectionPoolMySQLDatabase(pool: self, logger: logger, eventLoop: eventLoop)
     }
 }
 
 private struct _ConnectionPoolMySQLDatabase {
     let pool: EventLoopConnectionPool<MySQLConnectionSource>
     let logger: Logger
+    let eventLoop: EventLoop
 }
 
 extension _ConnectionPoolMySQLDatabase: MySQLDatabase {
-    var eventLoop: EventLoop {
-        self.pool.eventLoop
-    }
-    
     func send(_ command: MySQLCommand, logger: Logger) -> EventLoopFuture<Void> {
         self.pool.withConnection(logger: logger) {
             $0.send(command, logger: logger)
