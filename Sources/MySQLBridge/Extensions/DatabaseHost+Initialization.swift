@@ -15,7 +15,7 @@ extension DatabaseHost {
         let port = Int(ProcessInfo.processInfo.environment["MYSQL_PORT"] ?? "5432")
         let user = ProcessInfo.processInfo.environment["MYSQL_USER"] ?? "postgres"
         let pwd = ProcessInfo.processInfo.environment["MYSQL_PWD"]
-        return .init(hostname: host, username: user, password: pwd, port: port ?? 5432, tlsConfiguration: nil)
+        return .init(hostname: host, port: port ?? 5432, username: user, password: pwd, tlsConfiguration: nil)
     }
     
     public init?(url: URL) {
@@ -42,6 +42,7 @@ extension DatabaseHost {
             tlsConfiguration = .forClient()
         }
         
-        self.init(hostname: hostname, username: username, password: password, port: port, tlsConfiguration: tlsConfiguration)
+        self.init(hostname: hostname, port: port, username: username, password: password, tlsConfiguration: tlsConfiguration)
+    }
     }
 }

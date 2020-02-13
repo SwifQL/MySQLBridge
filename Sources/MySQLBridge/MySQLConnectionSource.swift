@@ -18,7 +18,7 @@ public struct MySQLConnectionSource: BridgesPoolSource {
     public func makeConnection(logger: Logger, on eventLoop: EventLoop) -> EventLoopFuture<MySQLConnection> {
         let address: SocketAddress
         do {
-            address = try SocketAddress.makeAddressResolvingHost(self.db.host.hostname, port: self.db.host.port)
+            address = try self.db.host.address()
         } catch {
             return eventLoop.makeFailedFuture(error)
         }
