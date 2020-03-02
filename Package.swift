@@ -1,4 +1,4 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.2
 import PackageDescription
 import Foundation
 
@@ -30,12 +30,12 @@ extension Array where Element == Dep {
 
 var deps: [Dep] = []
 
-deps.append("https://github.com/vapor/mysql-nio.git", from: "1.0.0-beta.2", targets: "MySQLNIO")
+deps.append("https://github.com/vapor/mysql-nio.git", from: "1.0.0-rc", targets: .product(name: "MySQLNIO", package: "mysql-nio"))
 
 if localDev {
-    deps.appendLocal("Bridges", targets: "Bridges")
+    deps.appendLocal("Bridges", targets: .product(name: "Bridges", package: "Bridges"))
 } else {
-    deps.append("https://github.com/SwifQL/Bridges.git", from: "1.0.0-beta.2", targets: "Bridges")
+    deps.append("https://github.com/SwifQL/Bridges.git", from: "1.0.0-rc", targets: .product(name: "Bridges", package: "Bridges"))
 }
 
 // MARK: - Package
@@ -43,7 +43,7 @@ if localDev {
 let package = Package(
     name: "MySQLBridge",
     platforms: [
-       .macOS(.v10_14)
+       .macOS(.v10_15)
     ],
     products: [
         .library(name: "MySQLBridge", targets: ["MySQLBridge"]),
@@ -51,6 +51,8 @@ let package = Package(
     dependencies: deps.map { $0.package },
     targets: [
         .target(name: "MySQLBridge", dependencies: deps.flatMap { $0.targets }),
-        .testTarget(name: "MySQLBridgeTests", dependencies: ["MySQLBridge"]),
+        .testTarget(name: "MySQLBridgeTests", dependencies: [
+            .target(name: "MySQLBridge")
+        ]),
     ]
 )
