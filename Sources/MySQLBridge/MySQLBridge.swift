@@ -51,23 +51,7 @@ final class _MySQLBridge: Bridgeable {
     func connection<T>(to db: DatabaseIdentifier,
                                   on eventLoop: EventLoop,
                                   _ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
-        self.db(db, on: eventLoop).withConnection { conn in
-            closure(conn).flatMap { result in
-                if conn.isClosed {
-                    return conn.eventLoop.future(result)
-                } else {
-                    return conn.close().transform(to: result)
-                }
-            }.flatMapError { error in
-                if conn.isClosed {
-                    return conn.close().flatMapThrowing {
-                        throw error
-                    }
-                } else {
-                    return conn.eventLoop.makeFailedFuture(error)
-                }
-            }
-        }
+        self.db(db, on: eventLoop).withConnection { closure($0) }
     }
     
     func db(_ db: DatabaseIdentifier, on eventLoop: EventLoop) -> MySQLDatabase {
