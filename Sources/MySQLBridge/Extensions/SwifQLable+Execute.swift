@@ -10,7 +10,7 @@ import SwifQL
 extension SwifQLable {
     @discardableResult
     public func execute(on conn: MySQLConnection) -> EventLoopFuture<[MySQLRow]> {
-        let prepared = prepare(.psql).splitted
+        let prepared = prepare(.mysql).splitted
         let binds: [MySQLData]
         do {
             binds = try prepared.values.map { try MySQLDataEncoder().encode($0) }
