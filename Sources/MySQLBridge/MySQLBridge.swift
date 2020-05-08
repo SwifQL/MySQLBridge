@@ -4,10 +4,10 @@ import AsyncKit
 import Bridges
 import Logging
 
-public struct MySQLBridge {
-    let context: BridgeWithContext<_MySQLBridge>
+public struct MySQLBridge: ContextBridgeable {
+    public let context: BridgeWithContext<MBR>
         
-    init (_ context: BridgeWithContext<_MySQLBridge>) {
+    init (_ context: BridgeWithContext<MBR>) {
         self.context = context
     }
     
@@ -26,35 +26,35 @@ public struct MySQLBridge {
     }
     
     public func migrator(for db: DatabaseIdentifier) -> Migrator {
-        BridgeDatabaseMigrations<_MySQLBridge>(context.bridge, db: db)
+        BridgeDatabaseMigrations<MBR>(context.bridge, db: db)
     }
 }
 
-final class _MySQLBridge: Bridgeable {
-    typealias Source = MySQLConnectionSource
-    typealias Database = MySQLDatabase
-    typealias Connection = MySQLConnection
+public final class MBR: Bridgeable {
+    public typealias Source = MySQLConnectionSource
+    public typealias Database = MySQLDatabase
+    public typealias Connection = MySQLConnection
     
-    static var dialect: SQLDialect { .mysql }
+    public static var dialect: SQLDialect { .mysql }
     
-    var pools: [String: GroupPool] = [:]
+    public var pools: [String: GroupPool] = [:]
     
-    let logger: Logger
-    let eventLoopGroup: EventLoopGroup
+    public let logger: Logger
+    public let eventLoopGroup: EventLoopGroup
     
-    required init (eventLoopGroup: EventLoopGroup, logger: Logger) {
+    public required init (eventLoopGroup: EventLoopGroup, logger: Logger) {
         self.eventLoopGroup = eventLoopGroup
         self.logger = logger
     }
     
     /// Gives a connection to the database and closes it automatically in both success and error cases
-    func connection<T>(to db: DatabaseIdentifier,
+    public func connection<T>(to db: DatabaseIdentifier,
                                   on eventLoop: EventLoop,
                                   _ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         self.db(db, on: eventLoop).withConnection { closure($0) }
     }
     
-    func db(_ db: DatabaseIdentifier, on eventLoop: EventLoop) -> MySQLDatabase {
+    public func db(_ db: DatabaseIdentifier, on eventLoop: EventLoop) -> MySQLDatabase {
         _ConnectionPoolMySQLDatabase(pool: pool(db, for: eventLoop), logger: logger, eventLoop: eventLoop)
     }
     
