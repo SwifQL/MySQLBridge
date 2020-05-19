@@ -40,4 +40,10 @@ public class MySQLDatabaseIdentifier: DatabaseIdentifier, MySQLDatabaseIdentifia
             T.select.execute(on: conn).first(decoding: T.self)
         }
     }
+    
+    public func query(_ query: SwifQLable, on bridges: AnyBridgesObject) -> EventLoopFuture<[BridgesRow]> {
+        MySQLBridge(bridges.bridges.bridge(to: B.self, on: bridges.eventLoop)).connection(to: self) { conn in
+            query.execute(on: conn).map { $0 as [BridgesRow] }
+        }
+    }
 }
