@@ -11,9 +11,15 @@ public struct MySQLBridge: ContextBridgeable {
         self.context = context
     }
     
+    /// Gives a connection to the database and releases it automatically in both success and error cases
     public func connection<T>(to db: DatabaseIdentifier,
                                             _ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         context.bridge.connection(to: db, on: context.eventLoop, closure)
+    }
+    
+    /// Gives a connection to the database and you should close it by yourself
+    public func requestConnection(to db: DatabaseIdentifier) -> EventLoopFuture<MySQLConnection> {
+        context.bridge.requestConnection(to: db, on: context.eventLoop)
     }
     
     public func transaction<T>(to db: DatabaseIdentifier,
@@ -47,14 +53,23 @@ public final class MBR: Bridgeable {
         self.logger = logger
     }
     
-    /// Gives a connection to the database and closes it automatically in both success and error cases
+    /// Gives a connection to the database and releases it automatically in both success and error cases
     public func connection<T>(to db: DatabaseIdentifier,
                                   on eventLoop: EventLoop,
                                   _ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         self.db(db, on: eventLoop).withConnection { closure($0) }
     }
     
+    /// Gives a connection to the database and you should close it by yourself
+    public func requestConnection(to db: DatabaseIdentifier, on eventLoop: EventLoop) -> EventLoopFuture<MySQLConnection> {
+        _db(db, on: eventLoop).requestConnection()
+    }
+    
     public func db(_ db: DatabaseIdentifier, on eventLoop: EventLoop) -> MySQLDatabase {
+        _db(db, on: eventLoop)
+    }
+    
+    private func _db(_ db: DatabaseIdentifier, on eventLoop: EventLoop) -> _ConnectionPoolMySQLDatabase {
         _ConnectionPoolMySQLDatabase(pool: pool(db, for: eventLoop), logger: logger, eventLoop: eventLoop)
     }
     
@@ -79,12 +94,16 @@ private struct _ConnectionPoolMySQLDatabase {
 
 extension _ConnectionPoolMySQLDatabase: MySQLDatabase {
     func send(_ command: MySQLCommand, logger: Logger) -> EventLoopFuture<Void> {
-        self.pool.withConnection(logger: logger) {
+        pool.withConnection(logger: logger) {
             $0.send(command, logger: logger)
         }
     }
     
     func withConnection<T>(_ closure: @escaping (MySQLConnection) -> EventLoopFuture<T>) -> EventLoopFuture<T> {
-        self.pool.withConnection(logger: self.logger, closure)
+        pool.withConnection(logger: logger, closure)
+    }
+    
+    func requestConnection() -> EventLoopFuture<MySQLConnection> {
+        pool.requestConnection(logger: logger)
     }
 }
